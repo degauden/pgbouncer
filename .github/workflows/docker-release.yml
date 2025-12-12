@@ -24,10 +24,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        run: |
-          echo "GitHub release/tag: $GITHUB_REF_NAME"
-          docker build . \
-            --file Dockerfile_prod \
-            --tag ghcr.io/${{ github.repository }}/npdb:${GITHUB_REF_NAME}
-          docker push ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${GITHUB_REF_NAME}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${GITHUB_REF_NAME}
