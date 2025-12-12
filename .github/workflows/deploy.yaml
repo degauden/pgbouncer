@@ -1,7 +1,9 @@
-name: Build and Push Docker Image on Release
+name: Build and push development Docker image
 
-on:  
+on:
   push:
+    branches: 
+      - "develop"
     tags:
       - '*'
 
@@ -29,4 +31,5 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${GITHUB_REF_NAME}
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${{ github.ref_name || 'dev' }}
