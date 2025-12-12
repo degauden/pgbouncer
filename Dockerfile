@@ -1,4 +1,4 @@
-FROM cern/cc7-base:latest
+FROM cern/cs9-base:latest
 
 #pgBouncer
 RUN yum -y install pgbouncer
