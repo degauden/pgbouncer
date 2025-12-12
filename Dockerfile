@@ -1,9 +1,9 @@
-FROM cern/cs9-base:latest
+FROM fedora:latest
 
 #pgBouncer
-RUN yum -y install pgbouncer
+RUN dnf -y install pgbouncer
 
-RUN yum install -y sudo vim
+RUN dnf install -y sudo vim
 
 # Create dedicated non-root user with proper privileges
 RUN useradd -m -G wheel docker && \
