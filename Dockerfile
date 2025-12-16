@@ -1,4 +1,4 @@
-FROM fedora:latest
+FROM fedora:43
 
 #pgBouncer
 RUN dnf -y install pgbouncer
