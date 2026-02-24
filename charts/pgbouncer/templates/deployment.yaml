@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: {{ template "deployment.apiVersion" . }}
 kind: Deployment
 metadata:
   name: {{ include "pgbouncer.fullname" . }}
@@ -8,18 +8,29 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{ if .Values.updateStrategy -}}
+  strategy: {{ .Values.updateStrategy | toYaml | trimSuffix "\n" | nindent 4 }}
+  {{ end -}}
+  {{ if .Values.minReadySeconds -}}
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  {{ end -}}
   selector:
     matchLabels:
       {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
+        {{- include "pgbouncer.selectorLabels" . | nindent 8 }}
         {{- include "pgbouncer.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/userlist: {{ include (print $.Template.BasePath "/userlist-secret.yaml") . | sha256sum }}
+        checksum/adminsecret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
@@ -28,10 +39,20 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "pgbouncer.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{ if .Values.extraInitContainers -}}
+      initContainers: {{ toYaml .Values.extraInitContainers | trimSuffix "\n" | nindent 6 }}
+      {{ end -}}
+      {{ if .Values.nodeSelector -}}
+      nodeSelector: {{ toYaml .Values.nodeSelector | trimSuffix "\n" | nindent 8 }}
+      {{ end -}}
+      {{ if .Values.tolerations -}}
+      tolerations: {{ toYaml .Values.tolerations | trimSuffix "\n" | nindent 6 }}
+      {{ end -}}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -62,17 +83,14 @@ spec:
           {{- end }}
       {{- with .Values.volumes }}
       volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      - name: tmp
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: {{ template "pgbouncer.fullname" . }}-configmap
+      - name: userlist
+        secret:
+          secretName: {{ .Values.config.existingUserlistSecret | default (printf "%s-userlist-secret" (include "pgbouncer.fullname" .)) }}
+      {{- if .Values.extraVolumes -}}
+      {{ toYaml .Values.extraVolumes | trimSuffix "\n" | nindent 6 }}
+      {{ end -}}

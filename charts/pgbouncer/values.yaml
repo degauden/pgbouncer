@@ -1,23 +1,53 @@
-# Default values for pgbouncer.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# -- Overrides the chart name for resources. If set, takes precedence over the chart's name.
+nameOverride: ""
 
-# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+# -- Completely overrides the generated name. If set, takes precedence over nameOverride and chart name.
+fullnameOverride: ""
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# -- Number of replicas for the PgBouncer Deployment (see Kubernetes docs for Deployments).
 replicaCount: 1
 
-# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-image:
-  repository: ghcr.io/degauden/pgbouncer/pgbouncer
-  # This sets the pull policy for images.
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+# -- How many old ReplicaSets to retain for rollbacks.
+revisionHistoryLimit: 10
 
-# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+# -- The update strategy to apply to the Deployment (e.g. Recreate or RollingUpdate).
+updateStrategy: {}
+#  type: Recreate
+#
+#  type: RollingUpdate
+#  rollingUpdate:
+#    maxUnavailable: 1
+#    maxSurge: 25%
+
+# -- Minimum number of seconds for which a newly created pod should be ready without crashing, before being considered available.
+minReadySeconds: 0
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+
+# -- Array of imagePullSecrets to use for pulling private images.
 imagePullSecrets: []
-# This is to override the chart name.
-nameOverride: ""
-fullnameOverride: ""
+# - name: "image-pull-secret"
+
+# -- Time (in seconds) to allow graceful shutdown before force-terminating the container.
+terminationGracePeriodSeconds: 30
+
+image:
+  # -- Container image repository
+  repository: ghcr.io/degauden/pgbouncer/pgbouncer
+  # -- Container image tag
+  tag: 0.3.0
+  # -- Container image pull policy: Always, IfNotPresent, or Never
+  pullPolicy: IfNotPresent
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
@@ -31,15 +61,26 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-# This is for setting Kubernetes Annotations to a Pod.
-# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
-podAnnotations: {}
+podSecurityContext: {}
+  # fsGroup: 2000
+
+extraInitContainers: []
+# - name: init
+#   image: busybox
+#   command: ['sh', '-c', 'until nslookup myservice; do echo waiting; sleep 2; done;']
+
+# -- Node labels for pod assignment.
+nodeSelector: {}
+
+# -- Affinity/anti-affinity rules for pod assignment.
+# -- See Kubernetes docs on affinity rules.
+affinity: {}
+
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
 podLabels: {}
+#  key: value
 
-podSecurityContext: {}
-  # fsGroup: 2000
 
 securityContext: {}
   # capabilities:
@@ -133,13 +174,6 @@ readinessProbe:
     path: /
     port: http
 
-# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 # Additional volumes on the output Deployment definition.
 volumes: []
@@ -154,8 +188,5 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
-nodeSelector: {}
-
 tolerations: []
 
-affinity: {}
